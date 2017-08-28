@@ -1,0 +1,3 @@
+[submodule "snap_cam_manager"]
+	path = snap_cam_manager
+	url = git@github.com:ATLFLight/snap_cam_manager.git

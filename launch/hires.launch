@@ -1,0 +1,78 @@
+<?xml version="1.0"?>
+<!--
+/****************************************************************************
+ *   Copyright (c) 2017 Michael Shomin. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name ATLFlight nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE GRANTED BY THIS LICENSE.
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ * In addition Supplemental Terms apply.  See the SUPPLEMENTAL file. 
+ ****************************************************************************/
+-->
+
+<launch>
+  <arg name="cam_name" default="hires"/>
+  <arg name="nodelet_manager_name" default="hires_nodelet_manager"/>
+  <arg name="skip_n_frames" default="0"/>
+  <arg name="do_rectification" default="false"/>
+
+  <group ns="$(arg cam_name)">  
+    <node pkg="nodelet" type="nodelet" name="$(arg nodelet_manager_name)" args="manager" output="screen"/>
+    <!-- camera driver nodelet -->
+    <node pkg="nodelet" type="nodelet" name="snap_cam_nodelet"
+	  args="load snap_cam_ros/driver $(arg nodelet_manager_name)">          
+      <param name="camera_name" value="$(arg cam_name)"/>  
+      <param name="format" value="1"/>
+      <param name="camera_number" value="0"/>
+      <param name="width" value="640"/>
+      <param name="height" value="480"/>
+      <param name="frame_id" value="hires"/>
+      <param name="skip_n_frames" value="$(arg skip_n_frames)"/>
+    </node>
+
+    <!--
+	camera_number        
+	HIRES = 0,
+	DOWNWARD = 1,
+	RIGHT_STEREO = 2,
+	STEREO = 3,
+
+        format
+        RAW_FORMAT  = 0
+        YUV_FORMAT  = 1
+        NV12_FORMAT = 2
+    -->
+
+    <!-- mono rectification -->
+    <group if="$(arg do_rectification)">
+      <node pkg="nodelet" type="nodelet" name="image_proc_rect"
+	    args="load image_proc/rectify $(arg nodelet_manager_name)">
+        <remap from="image_mono" to="image_raw"/>
+      </node>
+    </group>    
+  </group>
+</launch>
