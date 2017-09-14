@@ -74,17 +74,6 @@ endif()
 include_directories(include)
 include_directories(snap_cam_manager/src)
 
-message("target arch : ${TARGET_ARCH}")
-if(NOT DEFINED TARGET_ARCH OR TARGET_ARCH STREQUAL "8x74")
-  add_definitions( -DQC_SOC_TARGET_APQ8074 )
-  message("Building for 8074")
-elseif(TARGET_ARCH STREQUAL "8x96")
-  add_definitions( -DQC_SOC_TARGET_APQ8096 )
-  message("Building for 8096")
-else()
-  message("Unsupported architecture!")
-endif()
-
 include_directories(
   ${catkin_INCLUDE_DIRS}
 )
