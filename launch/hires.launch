@@ -52,6 +52,23 @@
       <param name="height" value="480"/>
       <param name="frame_id" value="hires"/>
       <param name="skip_n_frames" value="$(arg skip_n_frames)"/>
+
+      <param name="yuv_remap" value="mono"/> 
+      <!-- options are: mono, yuv422, and rgb8
+	   Note the following limitations:
+
+	   mono is the most efficient and only uses the Y channel
+	   from the provided yuv420p image.
+	   
+	   yuv422 converts the yuv420p to the ROS-supported yuv422
+	   encoding.  This allows standard ros transport of a color image,
+	   but image compression via image transport is not supported.
+
+	   rgb8 converts the yuv420p image to 3 channel, 8 bit rgb.  This
+	   supports ros color transport and compression, but it is by far
+	   the most computationally expensive (4 float operations, 3 mins, 
+	   3 maxes per pixel).  This could result in dropped frames.
+      -->
     </node>
 
     <!--

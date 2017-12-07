@@ -130,6 +130,26 @@ bool SnapCamDriver::Start(){
     ROS_ERROR("CameraManager::Start() failed");
     return false;
   }
+
+  std::string yuv_remap;
+  pnh_.param("yuv_remap", yuv_remap, std::string("mono"));
+  if(yuv_remap == "mono")
+  {
+    yuv_map_ = MONO;
+  }
+  else if(yuv_remap == "yuv422")
+  {
+    yuv_map_ = YUV422;
+  }
+  else if(yuv_remap == "rgb8")
+  {
+    yuv_map_ = RGB8;
+  }
+  else if(snap_cam_param_.camera_config.cam_format == Snapdragon::CameraFormat::YUV_FORMAT)
+  {
+    ROS_ERROR("Using YUV format, but specified an unknown mapping to ROS type");
+    return false;
+  }
   
   //Alocating extra buffer in case we incorrectly choose the image type (YUV vs RAW)
   uint32_t image_size = snap_cam_man_->GetImageSize()*3.0;
@@ -204,13 +224,67 @@ void SnapCamDriver::PublishLatestFrame(){
   prev_ts_ns = timestamp_ns;
 
   sensor_msgs::Image::Ptr image(new sensor_msgs::Image());
+  image->width = snap_cam_param_.camera_config.pixel_width;
+  image->height = snap_cam_param_.camera_config.pixel_height;
 
   if(snap_cam_param_.camera_config.cam_format == Snapdragon::CameraFormat::YUV_FORMAT){
-    sensor_msgs::fillImage(*image,sensor_msgs::image_encodings::MONO8,
-			   snap_cam_param_.camera_config.pixel_height,
-			   snap_cam_param_.camera_config.pixel_width,
-			   snap_cam_param_.camera_config.memory_stride,
-			   image_buffer);
+    unsigned int image_size_pix = snap_cam_param_.camera_config.pixel_height *
+      snap_cam_param_.camera_config.pixel_width;
+    unsigned int u_offset = image_size_pix;
+    unsigned int w = snap_cam_param_.camera_config.pixel_width;
+    unsigned int h = snap_cam_param_.camera_config.pixel_height;
+
+    if(yuv_map_ == MONO)
+    {
+      sensor_msgs::fillImage(*image,sensor_msgs::image_encodings::MONO8,
+			     snap_cam_param_.camera_config.pixel_height,
+			     snap_cam_param_.camera_config.pixel_width,
+			     snap_cam_param_.camera_config.memory_stride,
+			     image_buffer);
+      image->encoding = std::string("mono8");
+      image->step = snap_cam_param_.camera_config.pixel_width;
+    }
+    else if(yuv_map_ == YUV422)
+    {
+      image->data.resize(image_size_pix * 2);
+      for(unsigned int i=0; i*2 < image_size_pix; i++){
+	unsigned int row = (i*2)/w; // full res row
+	unsigned int col = (i*2)%w; // full res row
+	unsigned int rc_ind = ((row/2)*(w/2)) + (col/2); // half res ind
+	unsigned int u_ind = u_offset + (rc_ind*2) + 1;
+	unsigned int v_ind = u_offset + (rc_ind*2);
+
+	//UYVY
+	image->data[(i*4)+1] = image_buffer[i*2]; // Y1
+	image->data[(i*4)+3] = image_buffer[(i*2) + 1]; // Y2
+	image->data[(i*4)]   = image_buffer[u_ind];
+	image->data[(i*4)+2] = image_buffer[v_ind];
+      }
+
+      image->encoding = std::string("yuv422");
+      image->step = snap_cam_param_.camera_config.pixel_width*2;
+    }
+    else if(yuv_map_ == RGB8)
+    {
+      image->data.resize(image_size_pix * 3);
+      for(unsigned int i=0; i < image_size_pix; ++i){
+	unsigned int row = (i)/w; // full res row
+	unsigned int col = (i)%w; // full res row
+	unsigned int rc_ind = ((row/2)*(w/2)) + (col/2); // half res ind
+	unsigned int u_ind = u_offset + (rc_ind*2) + 1;
+	unsigned int v_ind = u_offset + (rc_ind*2);
+
+	image->data[(i*3)  ] = std::min(std::max((int)(image_buffer[i] + 
+						       (1.370705*(image_buffer[v_ind]-128))),0),255);
+	image->data[(i*3)+1] = std::min(std::max((int)(image_buffer[i] + 
+						       (-0.337633*(image_buffer[u_ind]-128)) +
+						       (-0.698001*(image_buffer[v_ind]-128))),0),255);
+	image->data[(i*3)+2] = std::min(std::max((int)(image_buffer[i] + 
+						       (1.732446*(image_buffer[u_ind]-128))),0),255);
+      }    
+      image->encoding = std::string("rgb8");
+      image->step = snap_cam_param_.camera_config.pixel_width*3;
+    }
   }
   else if(snap_cam_param_.camera_config.cam_format == Snapdragon::CameraFormat::RAW_FORMAT){
     unsigned int image_size_bytes = snap_cam_param_.camera_config.pixel_height *
@@ -220,6 +294,8 @@ void SnapCamDriver::PublishLatestFrame(){
       memcpy(&(image->data[i*4]),
 	     reinterpret_cast<uint8_t*>(image_buffer)+i*5, 4);
     }
+    image->encoding = std::string("mono8");
+    image->step = snap_cam_param_.camera_config.pixel_width;
   }
   else{
     ROS_ERROR("Unknown image format");
@@ -234,13 +310,7 @@ void SnapCamDriver::PublishLatestFrame(){
 
   image->header.frame_id = config_.frame_id;
   image->header.stamp = timestamp;
-
   image->is_bigendian = 0;
-  image->encoding = std::string("mono8");
-
-  image->width = snap_cam_param_.camera_config.pixel_width;
-  image->height = snap_cam_param_.camera_config.pixel_height;
-  image->step = snap_cam_param_.camera_config.pixel_width;
 
   cinfo->header.frame_id = config_.frame_id;
   cinfo->header.stamp = timestamp;

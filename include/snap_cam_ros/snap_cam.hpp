@@ -143,6 +143,13 @@ protected:
 
   uint8_t* image_buffer;
   ros::Duration monotonic_offset;
+
+  int yuv_map_;
+  enum YUV_MAPPING{
+    MONO,
+    YUV422,
+    RGB8
+  };
 };
 
 class SnapCamStereoDriver : public SnapCamDriver {
