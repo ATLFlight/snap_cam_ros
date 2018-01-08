@@ -154,3 +154,36 @@ rosrun rqt_image_vew rqt_image_view
 
 Select `/hires/image_raw` from the dropdown box, and you should see streaming video.  You can also
 stream compressed images if you have image-transport-plugins installed.  To do so, select the `/hires/image_raw/compressed` topic.
+
+## Fisheye Calibration
+
+For normal monocular calibration, refer the [ROS camera_calibration documentation](http://wiki.ros.org/camera_calibration#Camera_Calibrator).
+
+For calibration of the fisheye camera, however, the plumb_bob model used by ROS is not sufficeint.  Furthermore, SNAV uses a fisheye model.  Because the ROS calibration tool does not support fisheye, a patch is included in this repo to add support.  Please note that this was tested for one particular version of the calibration tool on Ubuntu 14.04.  Specifically, this was tested on camera_calibration 1.12.21-0trusty-20171109-013453-0800.  To check you version, run:
+
+```bash
+dpkg -l | grep camera_calibration
+```
+on your workstation.  Note that this patch is likely to work for other version if you allow for fuzzy line matching.  Also note that this patch makes the calibration tool only suitable for fisheye calibration, so you must change it back to its original state to calibrate non-fisheye cameras.  To patch:
+
+Make a backup:
+```bash
+sudo cp /opt/ros/indigo/lib/python2.7/dist-packages/camera_calibration/calibrator.py /opt/ros/indigo/lib/python2.7/dist-packages/camera_calibration/calibrator.py_bu
+```
+Patch the calibrator:
+```bash
+sudo patch /opt/ros/indigo/lib/python2.7/dist-packages/camera_calibration/calibrator.py calibrator.patch 
+```
+
+Now, after starting snap_cam_ros on the Snapdragon Flight board (roslaunch snap_cam_ros downward.launch) as root:
+
+```bash
+rosrun camera_calibration cameracalibrator.py -c downward -p 'acircles' --size 4x11 --square 0.0816 image:=/downward/image_raw
+```
+
+You should see the message:
+
+```bash
+CUSTOM CALIBRATOR, for use with fisheye cameras!
+```
+displayed in the terminal.  Make sure to modify the command above for you calibration target type and size.

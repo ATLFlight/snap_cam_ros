@@ -1,3 +1,4 @@
 [submodule "snap_cam_manager"]
 	path = snap_cam_manager
 	url = https://github.com/ATLFlight/snap_cam_manager.git
+
