@@ -67,8 +67,8 @@ git submodule update
 This package depends on other ROS packages to run.  To install them, we'll use [rosdep](http://wiki.ros.org/rosdep)
 
 ```bash
-roscd snap_cam_ros
-rosdep install . --from-paths
+cd /home/linaro/ros_ws
+rosdep install --from-paths src --skip-keys snap_msgs
 ```
 This requires an internet connection as it will install the rosdeps using aptitude.
 
@@ -85,7 +85,7 @@ sudo apt-get -o Dpkg::Options::="--force-overwrite" –f install
 Now re-run the rosdep install:
 
 ```bash
-rosdep install . --from-paths
+rosdep install --from-paths src --skip-keys snap_msgs
 ```
 
 ### Build the code
