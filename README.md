@@ -164,7 +164,7 @@ For calibration of the fisheye camera, however, the plumb_bob model used by ROS 
 ```bash
 dpkg -l | grep camera_calibration
 ```
-on your workstation.  Note that this patch is likely to work for other version if you allow for fuzzy line matching.  Also note that this patch makes the calibration tool only suitable for fisheye calibration, so you must change it back to its original state to calibrate non-fisheye cameras.  To patch:
+on your workstation. (Make sure you have run "sudo apt-get install ros-indigo-camera-calibration"). Note that this patch is likely to work for other version if you allow for fuzzy line matching.  Also note that this patch makes the calibration tool only suitable for fisheye calibration, so you must change it back to its original state to calibrate non-fisheye cameras.  To patch:
 
 Make a backup:
 ```bash
@@ -187,3 +187,8 @@ You should see the message:
 CUSTOM CALIBRATOR, for use with fisheye cameras!
 ```
 displayed in the terminal.  Make sure to modify the command above for you calibration target type and size.
+
+When you're done, replace the original file:
+```bash
+sudo mv /opt/ros/indigo/lib/python2.7/dist-packages/camera_calibration/calibrator.py_bu /opt/ros/indigo/lib/python2.7/dist-packages/camera_calibration/calibrator.py
+```
