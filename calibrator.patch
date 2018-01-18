@@ -1,5 +1,5 @@
---- calibrator.py		2018-01-08 17:15:47.007266817 -0500
-+++ calibrator_fisheye.py	2018-01-08 17:19:45.199259323 -0500
+--- calibrator.py	2018-01-10 14:23:35.679808901 -0500
++++ calibrator_fisheye.py	2018-01-10 16:46:42.116055358 -0500
 @@ -420,10 +420,7 @@
          """ Used by :meth:`as_message`.  Return a CameraInfo message for the given calibration matrices """
          msg = sensor_msgs.msg.CameraInfo()
@@ -33,7 +33,7 @@
  
      def cal(self, images):
          """
-@@ -594,18 +592,20 @@
+@@ -594,18 +592,28 @@
          opts = self.mk_object_points(boards)
  
          self.intrinsics = numpy.zeros((3, 3), numpy.float64)
@@ -43,21 +43,49 @@
 -            self.distortion = numpy.zeros((5, 1), numpy.float64) # plumb bob
 +        self.distortion = numpy.zeros((4, 1), numpy.float64) # fisheye
          # If FIX_ASPECT_RATIO flag set, enforce focal lengths have 1/1 ratio
-         self.intrinsics[0,0] = 1.0
-         self.intrinsics[1,1] = 1.0
+-        self.intrinsics[0,0] = 1.0
+-        self.intrinsics[1,1] = 1.0
 -        cv2.calibrateCamera(
 -                   opts, ipts,
-+        n_points = len(opts[0])
++        # Initialize intrinsics to expected values for Snapdragon Flight
++        # downward camera and use it as initial guess; this helps the solution
++        # converge
++        self.intrinsics[0,0] = 275.0
++        self.intrinsics[0,2] = 320.0
++        self.intrinsics[1,1] = 275.0
++        self.intrinsics[1,2] = 240.0
++        self.intrinsics[2,2] = 1.0
++        n_points = len(opts)
 +        rvecs = [numpy.zeros((1, 1, 3), dtype=numpy.float64) for i in range(n_points)]
 +        tvecs = [numpy.zeros((1, 1, 3), dtype=numpy.float64) for i in range(n_points)]
++        opts = [entry.transpose([1,0,2]) for entry in opts]
++        ipts = [entry.transpose([1,0,2]) for entry in ipts]
 +        cv2.fisheye.calibrate(
-+                   [opts[0].transpose([1,0,2])],
-+                   [ipts[0].transpose([1,0,2])],
++                   opts,
++                   ipts,
                     self.size, self.intrinsics,
                     self.distortion,
 -                   flags = self.calib_flags)
 +                   rvecs, tvecs,
-+                   flags=cv2.fisheye.CALIB_RECOMPUTE_EXTRINSIC+cv2.fisheye.CALIB_CHECK_COND+cv2.fisheye.CALIB_FIX_SKEW)
++                   flags=cv2.fisheye.CALIB_USE_INTRINSIC_GUESS+cv2.fisheye.CALIB_RECOMPUTE_EXTRINSIC+cv2.fisheye.CALIB_CHECK_COND+cv2.fisheye.CALIB_FIX_SKEW)
  
          # R is identity matrix for monocular calibration
          self.R = numpy.eye(3, dtype=numpy.float64)
+@@ -628,7 +636,7 @@
+         for j in range(3):
+             for i in range(3):
+                 self.P[j,i] = ncm[j, i]
+-        self.mapx, self.mapy = cv2.initUndistortRectifyMap(self.intrinsics, self.distortion, self.R, ncm, self.size, cv2.CV_32FC1)
++        self.mapx, self.mapy = cv2.fisheye.initUndistortRectifyMap(self.intrinsics, self.distortion, self.R, ncm, self.size, cv2.CV_32FC1)
+ 
+     def remap(self, src):
+         """
+@@ -647,7 +655,7 @@
+         Apply the post-calibration undistortion to the source points
+         """
+ 
+-        return cv2.undistortPoints(src, self.intrinsics, self.distortion, R = self.R, P = self.P)
++        return cv2.fisheye.undistortPoints(src, self.intrinsics, self.distortion, R = self.R, P = self.P)
+ 
+     def as_message(self):
+         """ Return the camera calibration as a CameraInfo message """
