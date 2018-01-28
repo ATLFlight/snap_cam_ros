@@ -149,7 +149,7 @@ This should show a stream of live data. If they do not, your ROS_IP
 env variable may need to be set on target.  If that is working, try to view the images:
 
 ```bash
-rosrun rqt_image_vew rqt_image_view
+rosrun rqt_image_view rqt_image_view
 ```
 
 Select `/hires/image_raw` from the dropdown box, and you should see streaming video.  You can also
