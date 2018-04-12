@@ -53,8 +53,8 @@
       <param name="width" value="640"/>
       <param name="height" value="480"/>
       <param name="skip_n_frames" value="$(arg skip_n_frames)"/>
-      <param name="frame_id" value="/left"/>
-      <param name="frame_id_right" value="/right"/>
+      <param name="frame_id" value="left_stereo"/>
+      <param name="frame_id_right" value="right_stereo"/>
     </node>
 
     <!--

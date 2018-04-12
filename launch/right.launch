@@ -52,7 +52,7 @@
       <param name="camera_number" value="2"/>
       <param name="width" value="640"/>
       <param name="height" value="480"/>
-      <param name="frame_id" value="/stereo_right"/>
+      <param name="frame_id" value="right_stereo"/>
       <param name="skip_n_frames" value="$(arg skip_n_frames)"/>
     </node>
 

@@ -30,7 +30,7 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
- * In addition Supplemental Terms apply.  See the SUPPLEMENTAL file. 
+ * In addition Supplemental Terms apply.  See the SUPPLEMENTAL file.
  ****************************************************************************/
 -->
 
@@ -39,29 +39,33 @@
   <arg name="nodelet_manager_name" default="downward_nodelet_manager"/>
   <arg name="skip_n_frames" default="0"/>
   <arg name="do_rectification" default="false"/>
-  
 
-  <group ns="$(arg cam_name)">  
-    <node pkg="nodelet" type="nodelet" name="$(arg nodelet_manager_name)" args="manager" output="screen"/>    
+  <!-- Note that this feature is only applicable to 8096 (if false)-->
+  <arg name="is_cam_master" default="true"/>
+
+  <group ns="$(arg cam_name)">
+    <node pkg="nodelet" type="nodelet" name="$(arg nodelet_manager_name)" args="manager" output="screen"/>
 
     <!-- camera driver nodelet -->
     <node pkg="nodelet" type="nodelet" name="snap_cam_nodelet"
-	  args="load snap_cam_ros/driver $(arg nodelet_manager_name)">
-      <param name="camera_name" value="$(arg cam_name)"/>  
-      <param name="format" value="0"/>
+    args="load snap_cam_ros/driver $(arg nodelet_manager_name)">
+      <param name="camera_name" value="$(arg cam_name)"/>
+      <param name="format" value="1"/>
       <param name="camera_number" value="1"/>
       <param name="width" value="640"/>
       <param name="height" value="480"/>
-      <param name="frame_id" value="/dfc"/>
-      <param name="skip_n_frames" value="$(arg skip_n_frames)"/>      
+      <param name="frame_id" value="dfc"/>
+      <param name="skip_n_frames" value="$(arg skip_n_frames)"/>
+      <param name="is_cam_master" value="$(arg is_cam_master)"/>
     </node>
+    <param name="image_raw/compressed/jpeg_quality" value="50"/>
     <!-- mono rectification -->
     <group if="$(arg do_rectification)">
       <node pkg="nodelet" type="nodelet" name="image_proc_rect"
-	    args="load image_proc/rectify $(arg nodelet_manager_name)">
+      args="load image_proc/rectify $(arg nodelet_manager_name)">
         <remap from="image_mono" to="image_raw"/>
       </node>
-    </group>    
+    </group>
 
   </group>
 </launch>

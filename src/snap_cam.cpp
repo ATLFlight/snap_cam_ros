@@ -29,7 +29,7 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- * In addition Supplemental Terms apply.  See the SUPPLEMENTAL file. 
+ * In addition Supplemental Terms apply.  See the SUPPLEMENTAL file.
  ****************************************************************************/
 
 #include "snap_cam_ros/snap_cam.hpp"
@@ -106,11 +106,13 @@ bool SnapCamDriver::Start(){
   recon_server_.setCallback(boost::bind(&SnapCamDriver::ReconCallback, this, _1, _2));
 
   int format, cam_type, width, height, frame_rate;
+  bool is_cam_master;
   pnh_.param<int>("format", format, 1);//default to YUV
   pnh_.param<int>("camera_number", cam_type,1);
   pnh_.param<int>("width", width, 640);
   pnh_.param<int>("height", height, 480);
   pnh_.param<int>("frame_rate", frame_rate, 30);
+  pnh_.param<bool>("is_cam_master", is_cam_master, true);
 
   snap_cam_param_.camera_config.cam_format = (Snapdragon::CameraFormat)format;
   snap_cam_param_.camera_config.cam_type = (Snapdragon::CameraType)cam_type;
@@ -118,6 +120,7 @@ bool SnapCamDriver::Start(){
   snap_cam_param_.camera_config.pixel_height = height;
   snap_cam_param_.camera_config.memory_stride = width;
   snap_cam_param_.camera_config.fps = frame_rate;
+  snap_cam_param_.camera_config.is_cam_master = is_cam_master;
 
   snap_cam_man_ = new Snapdragon::CameraManager(&snap_cam_param_);
 
@@ -150,7 +153,7 @@ bool SnapCamDriver::Start(){
     ROS_ERROR("Using YUV format, but specified an unknown mapping to ROS type");
     return false;
   }
-  
+
   //Alocating extra buffer in case we incorrectly choose the image type (YUV vs RAW)
   uint32_t image_size = snap_cam_man_->GetImageSize()*3.0;
   image_buffer = new uint8_t[ image_size ];
@@ -274,14 +277,14 @@ void SnapCamDriver::PublishLatestFrame(){
 	unsigned int u_ind = u_offset + (rc_ind*2) + 1;
 	unsigned int v_ind = u_offset + (rc_ind*2);
 
-	image->data[(i*3)  ] = std::min(std::max((int)(image_buffer[i] + 
+	image->data[(i*3)  ] = std::min(std::max((int)(image_buffer[i] +
 						       (1.370705*(image_buffer[v_ind]-128))),0),255);
-	image->data[(i*3)+1] = std::min(std::max((int)(image_buffer[i] + 
+	image->data[(i*3)+1] = std::min(std::max((int)(image_buffer[i] +
 						       (-0.337633*(image_buffer[u_ind]-128)) +
 						       (-0.698001*(image_buffer[v_ind]-128))),0),255);
-	image->data[(i*3)+2] = std::min(std::max((int)(image_buffer[i] + 
+	image->data[(i*3)+2] = std::min(std::max((int)(image_buffer[i] +
 						       (1.732446*(image_buffer[u_ind]-128))),0),255);
-      }    
+      }
       image->encoding = std::string("rgb8");
       image->step = snap_cam_param_.camera_config.pixel_width*3;
     }
@@ -321,13 +324,12 @@ void SnapCamDriver::PublishLatestFrame(){
   cam_pub_.publish(image, cinfo);
 
   // publish exposure times also
-  float exposure_time_us = 0;
-  int32_t erc = snap_cam_man_->GetExposureTimeUs(frame_id, &exposure_time_us);
+  uint64_t exposure_time_ns = 0;
+  int32_t erc = snap_cam_man_->GetExposureTime(frame_id, &exposure_time_ns);
   if ( erc != 0 ) {
     ROS_ERROR_STREAM("Could not find exposure time for frame_id " << frame_id);
   }
-  ros::Time exposure_time(static_cast<int64_t>(exposure_time_us) / 1000000,
-      static_cast<int64_t>(exposure_time_us) % 1000000);
+  ros::Duration exposure_time(exposure_time_ns / 1000000000, exposure_time_ns % 1000000000);
 
   uint64_t timestamp_coe_ns = 0;
   int32_t trc = snap_cam_man_->GetExposureCenterTimestamp(frame_id, &timestamp_coe_ns);
@@ -338,18 +340,18 @@ void SnapCamDriver::PublishLatestFrame(){
   timestamp_coe += monotonic_offset;
 
   snap_msgs::ExposureTimes expos_times;
-  expos_times.frame_timestamp = timestamp;
+  expos_times.header.stamp = timestamp;
+  expos_times.header.frame_id = config_.frame_id;
   expos_times.exposure_time = exposure_time;
   expos_times.center_of_exposure = timestamp_coe;
-
   expos_pub_.publish(expos_times);
 
-  /* 
-  // TODO: If any parameters have changed or the driver is 
+  /*
+  // TODO: If any parameters have changed or the driver is
   // restarted, notify dynamic reconfigure
   if (config_changed_) {
     recon_server_.updateConfig(config_);
-    recon_changed_ = false;  
+    recon_changed_ = false;
   */
 }
 
@@ -442,7 +444,7 @@ void SnapCamStereoDriver::PublishLatestStereoFrame(){
   cinfo->height = snap_cam_param_.camera_config.pixel_height;
 
   cam_pub_.publish(image, cinfo);
-  
+
 
   sensor_msgs::CameraInfo::Ptr cinfo_right(
     new sensor_msgs::CameraInfo(cinfo_manager_right_.getCameraInfo()));
@@ -481,15 +483,13 @@ void SnapCamStereoDriver::PublishLatestStereoFrame(){
 
   cam_pub_right_.publish(image_right, cinfo_right);
 
-
   // publish exposure times also
-  float exposure_time_us = 0;
-  int32_t erc = snap_cam_man_->GetExposureTimeUs(frame_id, &exposure_time_us);
+  uint64_t exposure_time_ns = 0;
+  int32_t erc = snap_cam_man_->GetExposureTime(frame_id, &exposure_time_ns);
   if ( erc != 0 ) {
     ROS_ERROR_STREAM("Could not find exposure time for frame_id " << frame_id);
   }
-  ros::Time exposure_time(static_cast<int64_t>(exposure_time_us) / 1000000,
-      static_cast<int64_t>(exposure_time_us) % 1000000);
+  ros::Duration exposure_time(exposure_time_ns / 1000000000, exposure_time_ns % 1000000000);
 
   uint64_t timestamp_coe_ns = 0;
   int32_t trc = snap_cam_man_->GetExposureCenterTimestamp(frame_id, &timestamp_coe_ns);
@@ -500,19 +500,22 @@ void SnapCamStereoDriver::PublishLatestStereoFrame(){
   timestamp_coe += monotonic_offset;
 
   snap_msgs::ExposureTimes expos_times;
-  expos_times.frame_timestamp = timestamp;
+  expos_times.header.stamp = timestamp;
+  expos_times.header.frame_id = config_.frame_id;
   expos_times.exposure_time = exposure_time;
   expos_times.center_of_exposure = timestamp_coe;
 
   expos_pub_.publish(expos_times);
+
+  expos_times.header.frame_id = config_.frame_id_right;
   expos_pub_right_.publish(expos_times);
 
   /*
-  // TODO: If any parameters have changed or the driver is 
+  // TODO: If any parameters have changed or the driver is
   // restarted, notify dynamic reconfigure
   if (config_changed) {
     recon_server_.updateConfig(config_);
-    recon_changed_ = false;  
+    recon_changed_ = false;
   */
 }
 
