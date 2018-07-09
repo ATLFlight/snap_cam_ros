@@ -50,8 +50,8 @@
 	  args="load snap_cam_ros/stereo_driver $(arg nodelet_manager_name)">
       <param name="format" value="1"/>
       <param name="camera_number" value="$(arg camera_number)"/>
-      <param name="width" value="640"/>
-      <param name="height" value="480"/>
+      <param name="width" value="$(arg width)"/>
+      <param name="height" value="$(arg height)"/>
       <param name="skip_n_frames" value="$(arg skip_n_frames)"/>
       <param name="frame_id" value="left_stereo"/>
       <param name="frame_id_right" value="right_stereo"/>
