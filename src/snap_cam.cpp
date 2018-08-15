@@ -116,7 +116,6 @@ bool SnapCamDriver::Start(){
 
   snap_cam_param_.camera_config.cam_format = (Snapdragon::CameraFormat)format;
   snap_cam_param_.camera_config.cam_type = (Snapdragon::CameraType)cam_type;
-  printf( "%s %d param: %d val: %d\n", __FILE__, __LINE__, snap_cam_param_.camera_config.cam_type, (Snapdragon::CameraType)cam_type);
   snap_cam_param_.camera_config.pixel_width = width;
   snap_cam_param_.camera_config.pixel_height = height;
   snap_cam_param_.camera_config.memory_stride = width;
@@ -371,7 +370,7 @@ void SnapCamStereoDriver::PublishLatestStereoFrame(){
   int64_t frame_id = prev_frame_id + 1 + config_.skip_n_frames;
   uint64_t timestamp_ns;
   uint32_t used = 0;
-printf( "%s %d %s\n", __FILE__, __LINE__, __FUNCTION__ );
+
   if (newest_id > frame_id) {
     frame_id = newest_id;
   }
