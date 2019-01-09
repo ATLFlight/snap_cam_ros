@@ -9,6 +9,7 @@ This ROS-based example demonstrates how to interact with libcamera on the Snapdr
    * [Hardware](#hardware)
    * [Software](#software)
 1. [Clone and build example code](#clone-and-build-example-code)
+1. [Building for QFLight Pro](#building-for-qflight-pro)
 1. [Run example code](#run-example-code)
 1. [Verification](#verification)
 
@@ -61,6 +62,13 @@ cd snap_cam_ros
 git submodule init
 git submodule update
 ```
+
+### Building for QFLight Pro
+If you are using a QFlight Pro board (8096), you will build the code inside your development docker.  Instructions can be found here:
+
+[QFlight Pro Buildi Instructions](https://github.com/ATLFlight/QFlightProDocs/blob/master/RosSoftware.md)
+
+After building and installing, you can skip to [Run example code](#run-example-code).
 
 ### Install ROS dependencies
 
