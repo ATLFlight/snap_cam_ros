@@ -36,6 +36,6 @@
 
 <launch>
   <include file="$(find snap_cam_ros)/launch/stereo.launch"/>
-  <include file="$(find snap_cam_ros)/launch/hires.launch"/>
   <include file="$(find snap_cam_ros)/launch/downward.launch"/>
+  <include file="$(find snap_cam_ros)/launch/hires.launch"/>
 </launch>

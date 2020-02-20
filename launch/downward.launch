@@ -50,7 +50,8 @@
     <node pkg="nodelet" type="nodelet" name="snap_cam_nodelet"
     args="load snap_cam_ros/driver $(arg nodelet_manager_name)">
       <param name="camera_name" value="$(arg cam_name)"/>
-      <param name="format" value="1"/>
+      <!-- Use format=0 for 8096 or format=1 for 8074 -->
+      <param name="format" value="0"/>
       <param name="camera_number" value="1"/>
       <param name="width" value="640"/>
       <param name="height" value="480"/>
